@@ -70,22 +70,23 @@ termchroma.py [OPTIONS] [IMAGE]
 ### Examples
 
 1. **Basic TUI**:
-   ```bash
+```bash
    termchroma.py myphoto.jpg
 ```
-    No TUI:
+
+#### No TUI:
 
 termchroma.py myphoto.jpg --no-tui --gradient rainbow
 
-Saving to file:
+#### Saving to file:
 
 termchroma.py myphoto.jpg --no-tui --scale 0.4 --gradient rainbow --save out.txt
 
-Show 256-color table:
+#### Show 256-color table:
 
-    termchroma.py --random-colors
+termchroma.py --random-colors
 
-License
+## License
 
 MIT License (or whichever license you prefer). See LICENSE file for details.
 Contributing
@@ -96,7 +97,7 @@ Contributing
 
 Author
 
-    You (or your organization)
+    Kleinpanic
 
 Enjoy TermChroma for your ASCII art needs!
 
