@@ -1,0 +1,87 @@
+.TH TERMCHROMA 1 "Mar 2025" "Version 1.1.0" "User Commands"
+.SH NAME
+termchroma \- A TUI-based image-to-ASCII art converter with ANSI color support
+
+.SH SYNOPSIS
+.B termchroma
+[\fIOPTIONS\fR] [\fIIMAGE\fR]
+
+.SH DESCRIPTION
+TermChroma is a powerful command-line utility for converting images (PNG, JPG, GIF, etc.) into ANSI-colored ASCII art. It features an interactive TUI for live adjustment, multiple character sets, and several color gradients (including grayscale, rainbow, and custom mappings).
+
+.SH OPTIONS
+.TP
+\fB--help\fR, \fB-h\fR
+Show help and exit.
+
+.TP
+\fB--version\fR, \fB-v\fR
+Show version (1.1.0) and exit.
+
+.TP
+\fB-o, --save\fR \fIFILE\fR
+Save the resulting ASCII (including color codes) to \fIFILE\fR.
+
+.TP
+\fB--scale\fR \fIFLOAT\fR
+Initial image scaling factor (default is 0.5). Affects how large the ASCII art is.
+
+.TP
+\fB--chars\fR \fISTRING\fR
+Override the default ASCII characters used for brightness mapping.
+
+.TP
+\fB--gradient\fR \fI{none,grayscale,rainbow,blue2red,custom}\fR
+Choose which color mode to apply to the ASCII output. Defaults to \fInone\fR if omitted.
+
+.TP
+\fB--no-tui\fR
+Disable the interactive TUI. The program performs a single conversion and prints or saves the ASCII art.
+
+.TP
+\fB--random-colors\fR
+Display a 256-color ANSI demonstration table, then exit.
+
+.TP
+\fB--resize-filter\fR \fI{nearest,bilinear,bicubic,lanczos}\fR
+Choose a Pillow resize filter. Default is \fIlanczos\fR.
+
+.SH TUI CONTROLS
+When running without \fB--no-tui\fR, you can interact with the keyboard:
+.TP
+.UP / .DOWN
+Adjust the ASCII art scale up or down.
+.TP
+.LEFT / .RIGHT
+Cycle through different ASCII character sets.
+.TP
+.B C
+Cycle color modes.
+.TP
+.B Q
+Quit the TUI.
+
+.SH EXAMPLES
+.TP
+termchroma myphoto.jpg
+Launch the TUI, displaying the ASCII art of \fImyphoto.jpg\fR in your terminal.
+
+.TP
+termchroma myphoto.jpg --no-tui --gradient rainbow
+Convert once using the "rainbow" gradient and print to stdout.
+
+.TP
+termchroma myphoto.jpg --no-tui --scale 0.4 --gradient rainbow --save out.txt
+Convert once at scale 0.4, save ANSI-colored ASCII to \fIout.txt\fR.
+
+.TP
+termchroma --random-colors
+Show the 256-color table, then exit.
+
+.SH AUTHOR
+Your Name (or Organization).
+
+.SH SEE ALSO
+\fBpython(1)\fR, \fBPillow\fR
+
+TermChroma 1.1.0, March 2025
