@@ -214,18 +214,16 @@ def display_ansi_color_table():
 # ---------------------------------------------------------------------------
 
 def tui_main(stdscr, args, pil_img):
-    curses.curs_set(0)  
-    stdscr.nodelay(True)  # we can do non-blocking getch
+    curses.curs_set(0)
+    stdscr.nodelay(False)  # block in getch instead of busy-polling
 
     scale = args.scale
     char_set_idx = 0
-    color_mode_idx = 0
+    color_mode_idx = COLOR_MODES.index(args.gradient) if args.gradient else 0
     resize_filter = parse_resize_filter(args.resize_filter)
 
-    # We'll store the current ascii lines and an *actual* scale used (if it was clamped)
-    ascii_lines, actual_scale = image_to_ascii(
-        pil_img, CHAR_SETS[char_set_idx], scale, "none"
-    )
+    ascii_lines = []
+    actual_scale = scale
 
     def redraw():
         """
@@ -250,6 +248,9 @@ def tui_main(stdscr, args, pil_img):
         )
         ascii_lines = lines
         actual_scale = new_scale
+        # Keep the requested scale in sync with what fits, so pressing Down
+        # after hitting the terminal limit shrinks the art immediately.
+        scale = new_scale
 
         # 3) Clear the screen via ANSI
         sys.stdout.write("\x1b[2J\x1b[H")
@@ -258,13 +259,14 @@ def tui_main(stdscr, args, pil_img):
         instructions = (
             f"[TUI Mode]  Scale={actual_scale:.2f}  |  CharSet={char_set_idx}  "
             f"|  ColorMode={COLOR_MODES[color_mode_idx]}  "
-            f"|  (Arrows=Adjust, C=Colors, Q=Quit)\n"
+            f"|  (Arrows=Adjust, C=Colors, Q=Quit)"
         )
-        print(instructions)
+        # Truncate so it never wraps onto a second row.
+        instructions = instructions[:max(term_w - 1, 0)]
 
-        # 5) Print each line of ASCII
-        for line in ascii_lines:
-            print(line)
+        # 5) Print the ASCII below it. No trailing newline: the instruction row
+        # plus the art rows must fit in term_h without scrolling.
+        sys.stdout.write(instructions + "\n" + "\n".join(ascii_lines))
 
         sys.stdout.flush()
 
@@ -294,6 +296,8 @@ def tui_main(stdscr, args, pil_img):
         elif c in (ord('c'), ord('C')):
             color_mode_idx = (color_mode_idx + 1) % len(COLOR_MODES)
             redraw()
+        elif c == curses.KEY_RESIZE:
+            redraw()
         # ignore all other keys
 
 def parse_resize_filter(filter_str):
@@ -319,6 +323,22 @@ def parse_resize_filter(filter_str):
 # 7) Main CLI
 # ---------------------------------------------------------------------------
 
+def positive_float(value):
+    """argparse type: a finite number > 0."""
+    try:
+        f = float(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"invalid number: {value!r}") from None
+    if not math.isfinite(f) or f <= 0:
+        raise argparse.ArgumentTypeError(f"must be a finite number > 0, got {value!r}")
+    return f
+
+def non_empty_str(value):
+    """argparse type: a string with at least one character."""
+    if not value:
+        raise argparse.ArgumentTypeError("must not be empty")
+    return value
+
 def main():
     parser = argparse.ArgumentParser(
         description="ASCII Art Converter — with TUI, color, and file saving.\n"
@@ -332,12 +352,13 @@ def main():
                         help="Path to an input image (jpg/png/gif, etc.).")
 
     parser.add_argument("-o", "--save",
-                        help="Write the resulting ASCII art (with ANSI colors) to a text file.")
+                        help="Write the resulting ASCII art (with ANSI colors) to a text file\n"
+                             "(implies --no-tui).")
 
-    parser.add_argument("--scale", type=float, default=0.5,
+    parser.add_argument("--scale", type=positive_float, default=0.5,
                         help="Initial scaling factor (default=0.5).")
 
-    parser.add_argument("--chars", type=str, default=None,
+    parser.add_argument("--chars", type=non_empty_str, default=None,
                         help="Custom ASCII characters (overrides CHAR_SETS[0]).")
 
     parser.add_argument("--gradient", type=str, default=None, choices=COLOR_MODES,
@@ -349,7 +370,8 @@ def main():
     parser.add_argument("--random-colors", action="store_true",
                         help="Show a 256-color table (plus sample ASCII), then exit.")
 
-    parser.add_argument("--resize-filter", type=str, default="lanczos",
+    parser.add_argument("--resize-filter", type=str.lower, default="lanczos",
+                        choices=["nearest", "bilinear", "bicubic", "lanczos"],
                         help="Resize filter: nearest/bilinear/bicubic/lanczos (default lanczos).")
 
     parser.add_argument("-v", "--version", action="store_true",
@@ -373,7 +395,7 @@ def main():
         sys.exit(1)
 
     if not os.path.exists(args.image):
-        print(f"ERROR: Image file not found: {args.image}")
+        print(f"ERROR: Image file not found: {args.image}", file=sys.stderr)
         sys.exit(1)
 
     # Possibly override the first CHAR_SETS entry with user-provided
@@ -385,7 +407,7 @@ def main():
         pil_img = Image.open(args.image)
         pil_img = pil_img.convert("RGB")
     except Exception as e:
-        print(f"ERROR: could not open image '{args.image}': {e}")
+        print(f"ERROR: could not open image '{args.image}': {e}", file=sys.stderr)
         sys.exit(1)
 
     # Decide color mode from --gradient
@@ -393,8 +415,8 @@ def main():
     if args.gradient:
         color_mode = args.gradient
 
-    # If user says --no-tui, just do a single pass
-    if args.no_tui:
+    # If user says --no-tui (or asks to save, which the TUI can't do), just do a single pass
+    if args.no_tui or args.save:
         resize_filter = parse_resize_filter(args.resize_filter)
         # We'll do a single pass of image_to_ascii
         # We don't know the user's terminal size here, but let's at least
@@ -402,7 +424,7 @@ def main():
         term_size = None
         try:
             term_size = os.get_terminal_size()
-        except:
+        except OSError:
             pass
 
         if term_size:
@@ -430,7 +452,8 @@ def main():
                         f.write(ln + "\n")
                 print(f"Saved ASCII art to: {args.save}")
             except Exception as e:
-                print(f"ERROR: Could not save file '{args.save}': {e}")
+                print(f"ERROR: Could not save file '{args.save}': {e}", file=sys.stderr)
+                sys.exit(1)
         else:
             for ln in lines:
                 print(ln)
