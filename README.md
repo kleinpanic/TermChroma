@@ -16,35 +16,38 @@
   - Press `Q` to quit.  
   - Art is always scaled to fit the terminal window, so it never overflows.
 - **Single-shot Conversion**: Use `--no-tui` to simply convert and print or save the ASCII art.
-- **Save to a File**: Use `-o/--save <file>` to write ASCII output (with color codes) to disk.
+- **Save to a File**: Use `-o/--save <file>` to write ASCII output (with color codes) to disk (implies `--no-tui`).
 - **256-Color Table**: `--random-colors` displays a color swatch chart.
 
 ## Dependencies
 
-- **Python 3.6+**
+- **Python 3.11+** (required by the pinned Pillow version)
 - [**Pillow**](https://pypi.org/project/Pillow/) for image processing  
 
 ```bash
-pip install Pillow
+pip install -r requirements.txt
 ```
 
 ## Installation
 
 1. Clone or download this repository.
-2. Place `termchroma.py` in a directory within your `$PATH`, or just run it locally.
-3. Ensure you have Python 3 and Pillow installed.
+2. Install the dependencies: `pip install -r requirements.txt`.
+3. Run `python3 ascii_art.py` from the repository, or copy `ascii_art.py` into a
+   directory on your `$PATH` (e.g. as `termchroma`) and `chmod +x` it.
 
 ## Usage
 
-termchroma.py [OPTIONS] [IMAGE]
+```bash
+python3 ascii_art.py [OPTIONS] [IMAGE]
+```
 
 
 **Key Options**:
 
 - `-o, --save <FILE>`  
-  Save the ASCII art to `FILE` (including ANSI color if any).
+  Save the ASCII art to `FILE` (including ANSI color if any). Implies `--no-tui`.
 - `--scale <FLOAT>`  
-  Initial scale factor (default `0.5`).
+  Initial scale factor, must be > 0 (default `0.5`).
 - `--chars <STRING>`  
   Override the default ASCII characters for brightness mapping.
 - `--gradient {none,grayscale,rainbow,blue2red,custom}`  
@@ -69,22 +72,40 @@ termchroma.py [OPTIONS] [IMAGE]
 
 ### Examples
 
-1. **Basic TUI**:
+#### Basic TUI:
+
 ```bash
-   termchroma.py myphoto.jpg
+python3 ascii_art.py myphoto.jpg
 ```
 
 #### No TUI:
 
-termchroma.py myphoto.jpg --no-tui --gradient rainbow
+```bash
+python3 ascii_art.py myphoto.jpg --no-tui --gradient rainbow
+```
 
 #### Saving to file:
 
-termchroma.py myphoto.jpg --no-tui --scale 0.4 --gradient rainbow --save out.txt
+```bash
+python3 ascii_art.py myphoto.jpg --scale 0.4 --gradient rainbow --save out.txt
+```
 
 #### Show 256-color table:
 
-termchroma.py --random-colors
+```bash
+python3 ascii_art.py --random-colors
+```
+
+## Development
+
+```bash
+pip install -r requirements-dev.txt
+ruff check .
+mypy ascii_art.py
+pytest
+```
+
+CI (`.github/workflows/ci.yml`) runs the same steps on every push and pull request.
 
 ## License
 
